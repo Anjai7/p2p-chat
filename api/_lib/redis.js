@@ -1,15 +1,27 @@
-const UPSTASH_URL = (process.env.UPSTASH_REDIS_REST_URL || '').replace(/\/$/, '');
-const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+function getConfig() {
+    const url = (
+        process.env.KV_REST_API_URL ||
+        process.env.UPSTASH_REDIS_REST_URL ||
+        ''
+    ).replace(/\/$/, '');
+    const token = (
+        process.env.KV_REST_API_TOKEN ||
+        process.env.UPSTASH_REDIS_REST_TOKEN ||
+        ''
+    );
+    return { url, token };
+}
 
 async function redisCommand(command, ...args) {
-    if (!UPSTASH_URL || !UPSTASH_TOKEN) {
-        throw new Error('Missing UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN');
+    const { url, token } = getConfig();
+    if (!url || !token) {
+        throw new Error('Missing KV/Upstash REST credentials in environment variables');
     }
     const path = [command, ...args.map(a => encodeURIComponent(String(a)))].join('/');
-    const response = await fetch(`${UPSTASH_URL}/${path}`, {
+    const response = await fetch(`${url}/${path}`, {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${UPSTASH_TOKEN}`,
+            'Authorization': `Bearer ${token}`,
         },
     });
     if (!response.ok) {
