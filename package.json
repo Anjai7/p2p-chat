@@ -3,10 +3,9 @@
   "version": "1.0.0",
   "description": "Anonymous P2P Chat with Vercel WebRTC Signaling",
   "main": "app.js",
+  "type": "module",
   "scripts": {
     "dev": "vercel dev"
   },
-  "dependencies": {
-    "ioredis": "^5.10.0"
-  }
+  "dependencies": {}
 }
