@@ -124,3 +124,8 @@ Contributions are always welcome! If you would like to improve AnonChat:
 ## Author
 
 Created by [Anjai7](https://github.com/Anjai7)
+
+
+
+
+
