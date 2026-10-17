@@ -19,21 +19,47 @@ jobs:
         with:
           node-version: 22
 
-      - run: npm install @upstash/redis
-
       - name: Ping Redis
         run: |
           node - <<'EOF'
-          const { Redis } = require("@upstash/redis");
-
-          const redis = new Redis({
-            url: process.env.UPSTASH_REDIS_REST_URL,
-            token: process.env.UPSTASH_REDIS_REST_TOKEN,
-          });
+          const url = (
+            process.env.KV_REST_API_URL ||
+            process.env.UPSTASH_REDIS_REST_URL ||
+            ""
+          ).replace(/\/$/, "");
+          const token =
+            process.env.KV_REST_API_TOKEN ||
+            process.env.UPSTASH_REDIS_REST_TOKEN ||
+            "";
 
           async function main() {
-            await redis.ping();
-            console.log("Redis is alive:", new Date().toISOString());
+            if (!url || !token) {
+              console.warn("Keepalive skipped: missing KV/Upstash REST credentials.");
+              return;
+            }
+
+            try {
+              const authHeader = "Bearer " + token;
+              const response = await fetch(`${url}/ping`, {
+                method: "POST",
+                headers: {
+                  Authorization: authHeader,
+                },
+              });
+
+              if (!response.ok) {
+                throw new Error(`Ping failed with HTTP ${response.status}`);
+              }
+
+              console.log("Redis is alive:", new Date().toISOString());
+            } catch (err) {
+              const code = err?.cause?.code;
+              if (code === "ENOTFOUND" || code === "EAI_AGAIN") {
+                console.warn(`Keepalive skipped due to DNS/network issue: ${code}`);
+                return;
+              }
+              throw err;
+            }
           }
 
           main().catch(err => {
@@ -42,5 +68,7 @@ jobs:
           });
           EOF
         env:
+          KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
+          KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
